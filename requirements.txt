@@ -16,3 +16,4 @@ jinja2
 websockets
 email-validator
 sqlalchemy
+playwright

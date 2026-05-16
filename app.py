@@ -1,6 +1,7 @@
 import os
 import asyncio
 from fastapi import FastAPI, BackgroundTasks, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, HttpUrl, EmailStr
@@ -20,12 +21,23 @@ load_dotenv()
 
 app = FastAPI(title="AutoLead AI Lead Automation Workflow")
 
-# Ensure static directory exists for serving index.html
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Ensure static directories exist
 if not os.path.exists("static"):
     os.makedirs("static")
+if not os.path.exists("reports"):
+    os.makedirs("reports")
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/reports", StaticFiles(directory="reports"), name="reports")
 
 class ConnectionManager:
     def __init__(self):
@@ -118,6 +130,16 @@ async def get_form():
     """Serve the frontend form."""
     with open("static/index.html", "r", encoding="utf-8") as f:
         return f.read()
+
+@app.get("/api/leads")
+async def get_leads():
+    """Fetch all processed leads for the React Dashboard."""
+    db = database.SessionLocal()
+    try:
+        leads = db.query(models.Lead).order_by(models.Lead.created_at.desc()).all()
+        return leads
+    finally:
+        db.close()
 
 @app.post("/api/submit")
 async def submit_lead(lead: LeadData, background_tasks: BackgroundTasks):

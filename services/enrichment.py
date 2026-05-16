@@ -1,24 +1,25 @@
 import os
-import requests
-from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright
 import google.generativeai as genai
 
 def scrape_website(url: str) -> str:
-    """Scrape visible text from a given URL."""
+    """Scrape visible text from a given URL using Playwright."""
     try:
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
-        
-        soup = BeautifulSoup(response.content, 'html.parser')
-        
-        # Remove script and style elements
-        for script in soup(["script", "style", "nav", "footer"]):
-            script.decompose()
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            # Go to URL and wait until network is idle, with a 15s timeout
+            page.goto(url, wait_until="networkidle", timeout=15000)
             
-        text = soup.get_text(separator=' ', strip=True)
-        # Limit text length to avoid token limits
-        return text[:10000] 
+            # Extract inner text from the body
+            text = page.evaluate("document.body.innerText")
+            browser.close()
+            
+            if not text:
+                return "Could not retrieve website content. Generate a generic report based on the company name."
+                
+            # Limit text length to avoid token limits
+            return text[:10000]
     except Exception as e:
         print(f"Warning: Failed to scrape {url}: {e}")
         return "Could not retrieve website content. Generate a generic report based on the company name."
