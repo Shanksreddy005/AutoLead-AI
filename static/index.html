@@ -59,11 +59,13 @@
             const statusMessage = document.getElementById('statusMessage');
             
             // Get form data
+            const sessionId = Math.random().toString(36).substring(2, 15);
             const formData = {
                 name: document.getElementById('name').value,
                 email: document.getElementById('email').value,
                 company_name: document.getElementById('company_name').value,
-                company_url: document.getElementById('company_url').value
+                company_url: document.getElementById('company_url').value,
+                session_id: sessionId
             };
 
             // Update UI
@@ -73,9 +75,30 @@
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Processing...
+                Connecting...
             `;
-            statusMessage.classList.add('hidden');
+            statusMessage.classList.remove('hidden');
+            statusMessage.className = 'mt-6 p-4 rounded-lg text-sm text-center bg-blue-50 text-blue-800';
+            statusMessage.textContent = 'Initializing workflow...';
+
+            // Connect WebSocket
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const ws = new WebSocket(`${protocol}//${window.location.host}/ws/status/${sessionId}`);
+            
+            ws.onmessage = (event) => {
+                statusMessage.textContent = event.data;
+                if (event.data.includes('Completed successfully') || event.data.includes('Error')) {
+                    ws.close();
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Lead & Generate Audit';
+                    if (event.data.includes('Completed')) {
+                        statusMessage.className = 'mt-6 p-4 rounded-lg text-sm text-center bg-green-50 text-green-800';
+                        document.getElementById('leadForm').reset();
+                    } else {
+                        statusMessage.className = 'mt-6 p-4 rounded-lg text-sm text-center bg-red-50 text-red-800';
+                    }
+                }
+            };
 
             try {
                 const response = await fetch('/api/submit', {
@@ -86,19 +109,17 @@
 
                 const result = await response.json();
 
-                if (response.ok) {
-                    statusMessage.className = 'mt-6 p-4 rounded-lg text-sm text-center bg-green-50 text-green-800';
-                    statusMessage.textContent = result.message;
-                    document.getElementById('leadForm').reset();
-                } else {
+                if (!response.ok) {
                     statusMessage.className = 'mt-6 p-4 rounded-lg text-sm text-center bg-red-50 text-red-800';
                     statusMessage.textContent = 'Error: ' + (result.detail?.[0]?.msg || JSON.stringify(result.detail) || 'Submission failed');
+                    ws.close();
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Lead & Generate Audit';
                 }
             } catch (error) {
                 statusMessage.className = 'mt-6 p-4 rounded-lg text-sm text-center bg-red-50 text-red-800';
                 statusMessage.textContent = 'Network error occurred. Please try again.';
-            } finally {
-                statusMessage.classList.remove('hidden');
+                ws.close();
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Submit Lead & Generate Audit';
             }

@@ -13,3 +13,6 @@ google-auth-httplib2
 google-api-python-client
 gspread
 jinja2
+websockets
+email-validator
+sqlalchemy
