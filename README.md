@@ -1,6 +1,6 @@
 # AutoLead AI - Automated Lead Enrichment Engine
 
-AutoLead AI is a full-stack automated workflow designed to instantly process new business leads. When a prospective client submits their information, the system automatically scrapes their company website, uses Google's Gemini 1.5 Flash LLM to generate a personalized "AI Readiness Audit," converts the analysis into a professionally styled PDF, and emails it back to the prospect—all without human intervention.
+AutoLead AI is a full-stack automated workflow designed to instantly process new business leads. When a prospective client submits their information, the system automatically scrapes their company website, uses Google's Gemini 1.5 Flash LLM to generate a personalized "AI Readiness Audit," converts the analysis into a professionally styled PDF, and emails it back to the prospect all without human intervention.
 
 ## Features
 - **Instant Web Scraping:** Extracts context directly from the prospect's submitted URL.
